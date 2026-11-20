@@ -17,9 +17,9 @@ Most AI-generated READMEs fail the same way: a welcome paragraph, a six-item fea
 Copy the folder into your agent's skills directory:
 
 ```bash
-git clone <repo-url> readme-craft
+git clone https://github.com/XJZskywalker/Readme-craft.git
 mkdir -p ~/.workbuddy/skills
-cp -r readme-craft ~/.workbuddy/skills/
+cp -r Readme-craft ~/.workbuddy/skills/readme-craft
 ```
 
 For Claude Code and other agents that read `SKILL.md` from a skills folder, the same copy works — the directory layout is standard.

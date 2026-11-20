@@ -17,9 +17,9 @@
 把目录复制到 agent 的 skills 目录即可：
 
 ```bash
-git clone <repo-url> readme-craft
+git clone https://github.com/XJZskywalker/Readme-craft.git
 mkdir -p ~/.workbuddy/skills
-cp -r readme-craft ~/.workbuddy/skills/
+cp -r Readme-craft ~/.workbuddy/skills/readme-craft
 ```
 
 Claude Code 及其他从 skills 目录读取 `SKILL.md` 的 agent 使用方法相同，目录结构是通用的。
