@@ -28,6 +28,12 @@ For Claude Code and other agents that read `SKILL.md` from a skills folder, the 
 
 Requirements: Python 3.9 or newer for the two scripts. Neither imports anything outside the standard library.
 
+Working on this repository itself, enable the README gate once after cloning. Every commit and push then runs the linter first:
+
+```bash
+git config core.hooksPath .githooks
+```
+
 ## Use
 
 Ask in the language you would normally use:

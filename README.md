@@ -28,6 +28,12 @@ Claude Code 及其他从 skills 目录读取 `SKILL.md` 的 agent 使用方法�
 
 依赖：Python 3.9 以上，两个脚本都只用标准库。
 
+改这个仓库本身的话，clone 后先启用 README 闸门，之后每次 commit 和 push 都会先跑一遍 lint：
+
+```bash
+git config core.hooksPath .githooks
+```
+
 ## 使用
 
 直接说需求即可：
