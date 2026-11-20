@@ -7,6 +7,12 @@ structure, broken formatting, and claims the repository cannot back up.
 
 Usage:
     python readme_lint.py README.md [--type library] [--repo .] [--json]
+    python readme_lint.py --stdin [--repo .]     # lint staged or committed content
+
+Checks come in three tiers. Correctness errors and six always-on warnings
+decide the exit code. Taste rules (sentence length, bullet density, emoji
+count, CJK spacing) are opt-in with --style; the git gate never blocks on
+them.
 
 Exit codes: 0 pass, 1 fail, 2 usage error.
 """
@@ -331,8 +337,17 @@ def guess_type(text: str) -> str:
     return "generic"
 
 
-def run(path: Path, kind: str, repo: Path | None) -> dict:
-    text = Path(path).read_text(encoding="utf-8", errors="replace")
+def run(path: Path, kind: str, repo: Path | None, style: bool = False,
+        source: str | None = None) -> dict:
+    # A hook passes the staged or committed blob through stdin. Linting that
+    # rather than the working-tree copy is what makes the gate honest: what
+    # is about to be published is what gets checked.
+    if source is None:
+        text = Path(path).read_text(encoding="utf-8", errors="replace")
+        label = str(path)
+    else:
+        text = source
+        label = "<stdin>"
     parsed = parse(text)
     total_lines = len(parsed["lines"])
     if kind == "auto":
@@ -353,6 +368,8 @@ def run(path: Path, kind: str, repo: Path | None) -> dict:
         disabled.update(part for part in re.split(r"[,\s]+", match.group(1)) if part)
     if disabled:
         findings = [f for f in findings if f.rule not in disabled]
+    if not style:
+        findings = [f for f in findings if f.rule not in STYLE_RULES]
 
     findings.sort(key=lambda f: (f.line, f.severity))
 
@@ -360,10 +377,12 @@ def run(path: Path, kind: str, repo: Path | None) -> dict:
     score = max(0, 100 - penalty)
     errors = sum(1 for f in findings if f.severity == "error")
     warnings = len(findings) - errors
-    passed = errors == 0 and score >= 85
+    # Only correctness errors decide the exit code. Warnings are advice; if
+    # they blocked, the gate would punish a file a reader can still use.
+    passed = errors == 0
 
     return {
-        "file": str(path),
+        "file": label,
         "type": kind,
         "lines": total_lines,
         "budget": BUDGET.get(kind, BUDGET["generic"]),
@@ -371,6 +390,7 @@ def run(path: Path, kind: str, repo: Path | None) -> dict:
         "errors": errors,
         "warnings": warnings,
         "passed": passed,
+        "style": style,
         "findings": [f.as_dict() for f in findings],
     }
 
@@ -390,6 +410,7 @@ def render(result: dict) -> str:
 
 
 RULES = {
+    # A reader cannot trust the file.
     "hype": ("error", "marketing language standing in for a fact"),
     "placeholder": ("error", "placeholder text that would ship as-is"),
     "opener": ("error", "greeting opener instead of stating what the project does"),
@@ -399,13 +420,16 @@ RULES = {
     "no-start": ("error", "no quick-start, install, or usage section"),
     "heading-emoji": ("error", "decorative emoji in a heading"),
     "license-claim": ("error", "claims a license while no LICENSE file exists"),
+    # Always on: cheap to check, cheap to fix.
     "todo": ("warn", "unresolved TODO marker"),
-    "filler": ("warn", "filler phrase that says nothing"),
     "heading-skip": ("warn", "heading level skipped"),
     "no-install": ("warn", "no install or quick-start section"),
-    "toc": ("warn", "table of contents in a short file"),
     "bare-features": ("warn", "feature list with no explanation"),
     "fence-lang": ("warn", "code fence without a language tag"),
+    "too-long": ("warn", "file exceeds the archetype budget"),
+    # Taste, opt-in via --style.
+    "filler": ("warn", "filler phrase that says nothing"),
+    "toc": ("warn", "table of contents in a short file"),
     "emoji": ("warn", "emoji scattered through prose"),
     "bullet-run": ("warn", "long run of consecutive bullets"),
     "bullet-ratio": ("warn", "document reads as an outline"),
@@ -415,16 +439,26 @@ RULES = {
     "emdash": ("warn", "em dashes carrying the content"),
     "long-sentence": ("warn", "sentence over the length limit"),
     "cjk-spacing": ("warn", "missing space between Chinese and Latin text"),
-    "too-long": ("warn", "file exceeds the archetype budget"),
+}
+
+# Taste, not correctness. These fire on text a reader can still use, so they
+# only run when explicitly asked for; the gate does not block on style.
+STYLE_RULES = {
+    "filler", "toc", "emoji", "bullet-run", "bullet-ratio", "badges",
+    "exclamation", "bold", "emdash", "long-sentence", "cjk-spacing",
 }
 
 
 def list_rules() -> str:
     out = ["readme_lint — checks", ""]
-    for severity in ("error", "warn"):
-        out.append(f"{severity} (exit non-zero)" if severity == "error" else "warn")
-        for rule, (sev, desc) in RULES.items():
-            if sev == severity:
+    for label, predicate in (
+        ("error (exit non-zero)", lambda r: RULES[r][0] == "error"),
+        ("warn (always on)", lambda r: RULES[r][0] == "warn" and r not in STYLE_RULES),
+        ("style (only with --style, off in the gate)", lambda r: r in STYLE_RULES),
+    ):
+        out.append(label)
+        for rule, (_, desc) in RULES.items():
+            if predicate(rule):
                 out.append(f"  {rule:<16} {desc}")
         out.append("")
     out.append("word lists")
@@ -435,6 +469,30 @@ def list_rules() -> str:
     out.append("")
     out.append("budgets   " + ", ".join(f"{k} {v}" for k, v in BUDGET.items()))
     return "\n".join(out)
+
+
+def check_rule_table() -> list[str]:
+    """Invariants a dict literal hides: duplicate keys and dangling style ids.
+
+    A duplicated key in RULES is silently overwritten by Python, so a bad
+    edit that repeats an id looks fine at runtime. Parse our own source to
+    catch it, and verify the opt-in set names only real rules.
+    """
+    import ast
+
+    problems: list[str] = []
+    source = Path(__file__).read_text(encoding="utf-8")
+    for node in ast.walk(ast.parse(source)):
+        if not isinstance(node, ast.Assign) or not isinstance(node.value, ast.Dict):
+            continue
+        if not any(isinstance(t, ast.Name) and t.id == "RULES" for t in node.targets):
+            continue
+        keys = [k.value for k in node.value.keys if isinstance(k, ast.Constant)]
+        for key in sorted({k for k in keys if keys.count(k) > 1}):
+            problems.append(f"duplicate rule id in RULES: {key}")
+    for key in sorted(STYLE_RULES - set(RULES)):
+        problems.append(f"STYLE_RULES names an undeclared rule: {key}")
+    return problems
 
 
 def self_test() -> int:
@@ -463,6 +521,27 @@ def self_test() -> int:
             if finding["rule"] not in RULES:
                 print(f"FAIL  undeclared rule id: {finding['rule']}")
                 failures += 1
+
+    for problem in check_rule_table():
+        print(f"FAIL  {problem}")
+        failures += 1
+
+    sample = root / "examples/cli-before.md"
+    plain = run(sample, "cli", root, style=False)
+    styled = run(sample, "cli", root, style=True)
+    leaked = sorted({f["rule"] for f in plain["findings"] if f["rule"] in STYLE_RULES})
+    if leaked:
+        print(f"FAIL  style rules leaked into default run: {leaked}")
+        failures += 1
+    else:
+        print("ok    default run excludes style rules")
+    gained = sorted({f["rule"] for f in styled["findings"] if f["rule"] in STYLE_RULES})
+    if not gained:
+        print("FAIL  --style produced no style findings")
+        failures += 1
+    else:
+        print(f"ok    --style adds {len(gained)} style rules: {', '.join(gained)}")
+
     print("self-test", "PASS" if failures == 0 else f"FAIL ({failures})")
     return 0 if failures == 0 else 1
 
@@ -477,6 +556,10 @@ def main() -> int:
     parser.add_argument("--json", action="store_true", help="machine-readable output")
     parser.add_argument("--list-rules", action="store_true", help="print every check and word list, then exit")
     parser.add_argument("--self-test", action="store_true", help="verify the bundled examples score as expected")
+    parser.add_argument("--style", action="store_true",
+                        help="also check taste rules (sentence length, bullet density, emoji count)")
+    parser.add_argument("--stdin", action="store_true",
+                        help="read README content from stdin instead of the working-tree file")
     args = parser.parse_args()
 
     if args.list_rules:
@@ -486,13 +569,16 @@ def main() -> int:
     if args.self_test:
         return self_test()
 
-    path = Path(args.file)
-    if not path.is_file():
-        print(f"error: file not found: {path}", file=sys.stderr)
-        return 2
-
     repo = Path(args.repo).resolve() if args.repo else None
-    result = run(path, args.type, repo)
+    if args.stdin:
+        result = run(Path(args.file), args.type, repo, style=args.style,
+                     source=sys.stdin.read())
+    else:
+        path = Path(args.file)
+        if not path.is_file():
+            print(f"error: file not found: {path}", file=sys.stderr)
+            return 2
+        result = run(path, args.type, repo, style=args.style)
     print(json.dumps(result, ensure_ascii=False, indent=2) if args.json else render(result))
     return 0 if result["passed"] else 1
 

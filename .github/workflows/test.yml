@@ -1,0 +1,40 @@
+name: self-test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Run both self-tests
+        run: |
+          python scripts/readme_lint.py --self-test
+          python scripts/readme_stale.py --self-test
+
+      - name: Lint both READMEs
+        run: |
+          python scripts/readme_lint.py README.md --repo .
+          python scripts/readme_lint.py README.en.md --repo .
+
+      - name: Check the committed blob, the way the hook does
+        run: |
+          git show HEAD:README.md | python scripts/readme_lint.py --stdin --repo .
+          sh scripts/readme_gate.sh "HEAD:README.md"
+
+      - name: Check hook syntax
+        run: |
+          sh -n scripts/readme_gate.sh
+          sh -n .githooks/pre-commit
+          sh -n .githooks/pre-push

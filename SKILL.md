@@ -50,9 +50,9 @@ The habit that carries most of the quality: replace the adjective with the numbe
 python scripts/readme_lint.py README.md --type <archetype> --repo .
 ```
 
-The linter scores the file 0–100, names the line, and exits non-zero on any error. Fix and rerun until it exits zero; `python scripts/readme_lint.py --list-rules` prints every check and the word lists behind them, which is also where `references/style-rules.md` points instead of restating them.
+The linter scores the file 0–100, names the line, and exits non-zero only on errors. Correctness errors and a few always-on warnings run by default; fix and rerun until it exits zero. `python scripts/readme_lint.py --list-rules` prints every check and the word lists behind them, which is also where `references/style-rules.md` points instead of restating them.
 
-It catches what a model misses in its own output: marketing adjectives, decorative emoji, bullet-only structure, a license claim with no `LICENSE` file behind it. Whether a section earns its space is not machine-checkable, so that judgement stays with you.
+It catches what a model misses in its own output: marketing adjectives, invented placeholders, broken headings, a license claim with no `LICENSE` file behind it. Taste rules — sentence length, emoji density, CJK spacing — are opt-in with `--style` and never block a gate, because style is not an incident. Whether a section earns its space is not machine-checkable, so that judgement stays with you.
 
 ## Handing it back
 

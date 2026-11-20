@@ -1,2 +1,3 @@
 #!/bin/sh
-exec "$(dirname "$0")/../scripts/readme_gate.sh"
+# Lint the README blob in the index, not the working-tree copy.
+exec "$(dirname "$0")/../scripts/readme_gate.sh" ":README.md"

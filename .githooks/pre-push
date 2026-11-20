@@ -1,2 +1,21 @@
 #!/bin/sh
-exec "$(dirname "$0")/../scripts/readme_gate.sh"
+# stdin carries one line per ref: "<local ref> <local sha> <remote ref> <remote sha>".
+# Check every ref; a push can carry more than one branch.
+gate="$(dirname "$0")/../scripts/readme_gate.sh"
+status=0
+while read -r local_ref local_sha remote_ref remote_sha; do
+    [ -n "$local_sha" ] || continue
+    case "$local_sha" in
+        0000000000000000000000000000000000000000) continue ;;  # branch deletion
+    esac
+    case "$remote_sha" in
+        0000000000000000000000000000000000000000)
+            # New ref upstream: no baseline to diff, so lint the tip commit.
+            "$gate" "${local_sha}:README.md" || status=1
+            ;;
+        *)
+            "$gate" "${local_sha}:README.md" "${remote_sha}..${local_sha}" || status=1
+            ;;
+    esac
+done
+exit "$status"
