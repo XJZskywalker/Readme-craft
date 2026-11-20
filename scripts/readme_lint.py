@@ -389,6 +389,84 @@ def render(result: dict) -> str:
     return "\n".join(out)
 
 
+RULES = {
+    "hype": ("error", "marketing language standing in for a fact"),
+    "placeholder": ("error", "placeholder text that would ship as-is"),
+    "opener": ("error", "greeting opener instead of stating what the project does"),
+    "no-h1": ("error", "no top-level title"),
+    "multi-h1": ("error", "more than one H1"),
+    "empty-section": ("error", "section heading with no content"),
+    "no-start": ("error", "no quick-start, install, or usage section"),
+    "heading-emoji": ("error", "decorative emoji in a heading"),
+    "license-claim": ("error", "claims a license while no LICENSE file exists"),
+    "todo": ("warn", "unresolved TODO marker"),
+    "filler": ("warn", "filler phrase that says nothing"),
+    "heading-skip": ("warn", "heading level skipped"),
+    "no-install": ("warn", "no install or quick-start section"),
+    "toc": ("warn", "table of contents in a short file"),
+    "bare-features": ("warn", "feature list with no explanation"),
+    "fence-lang": ("warn", "code fence without a language tag"),
+    "emoji": ("warn", "emoji scattered through prose"),
+    "bullet-run": ("warn", "long run of consecutive bullets"),
+    "bullet-ratio": ("warn", "document reads as an outline"),
+    "badges": ("warn", "more badges than report real state"),
+    "exclamation": ("warn", "exclamation marks"),
+    "bold": ("warn", "bold used too often to mean anything"),
+    "emdash": ("warn", "em dashes carrying the content"),
+    "long-sentence": ("warn", "sentence over the length limit"),
+    "cjk-spacing": ("warn", "missing space between Chinese and Latin text"),
+    "too-long": ("warn", "file exceeds the archetype budget"),
+}
+
+
+def list_rules() -> str:
+    out = ["readme_lint — checks", ""]
+    for severity in ("error", "warn"):
+        out.append(f"{severity} (exit non-zero)" if severity == "error" else "warn")
+        for rule, (sev, desc) in RULES.items():
+            if sev == severity:
+                out.append(f"  {rule:<16} {desc}")
+        out.append("")
+    out.append("word lists")
+    out.append(f"  hype (en)   {', '.join(HYPE)}")
+    out.append(f"  hype (zh)   {'、'.join(CJK_HYPE)}")
+    out.append(f"  filler      {', '.join(FILLER)}")
+    out.append(f"  placeholder {' | '.join(PLACEHOLDER)}")
+    out.append("")
+    out.append("budgets   " + ", ".join(f"{k} {v}" for k, v in BUDGET.items()))
+    return "\n".join(out)
+
+
+def self_test() -> int:
+    """Run the linter against the bundled examples and check declared rules."""
+    root = Path(__file__).resolve().parent.parent
+    cases = [
+        ("examples/cli-before.md", "cli", False),
+        ("examples/cli-after.md", "cli", True),
+        ("examples/library-before.md", "library", False),
+        ("examples/library-after.md", "library", True),
+        ("README.md", "generic", True),
+    ]
+    failures = 0
+    for rel, kind, expect_pass in cases:
+        path = root / rel
+        if not path.is_file():
+            print(f"MISSING  {rel}")
+            failures += 1
+            continue
+        result = run(path, kind, root)
+        ok = result["passed"] == expect_pass
+        failures += 0 if ok else 1
+        print(f"{'ok  ' if ok else 'FAIL'}  {rel:28} score={result['score']:>3} "
+              f"errors={result['errors']} expected={'PASS' if expect_pass else 'FAIL'}")
+        for finding in result["findings"]:
+            if finding["rule"] not in RULES:
+                print(f"FAIL  undeclared rule id: {finding['rule']}")
+                failures += 1
+    print("self-test", "PASS" if failures == 0 else f"FAIL ({failures})")
+    return 0 if failures == 0 else 1
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Lint a README for AI-generated patterns.")
     parser.add_argument("file", nargs="?", default="README.md", help="README path (default: README.md)")
@@ -397,7 +475,16 @@ def main() -> int:
                         help="archetype, for the length budget")
     parser.add_argument("--repo", help="repository root, enables the license-file check")
     parser.add_argument("--json", action="store_true", help="machine-readable output")
+    parser.add_argument("--list-rules", action="store_true", help="print every check and word list, then exit")
+    parser.add_argument("--self-test", action="store_true", help="verify the bundled examples score as expected")
     args = parser.parse_args()
+
+    if args.list_rules:
+        print(list_rules())
+        return 0
+
+    if args.self_test:
+        return self_test()
 
     path = Path(args.file)
     if not path.is_file():

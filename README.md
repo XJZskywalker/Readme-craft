@@ -73,7 +73,7 @@ score: 64/100  (2 errors, 1 warning)
 result: FAIL
 ```
 
-如需豁免某条规则，在文件任意位置写 `<!-- readme-lint: disable rule-name -->`。
+如需豁免某条规则，在文件任意位置写 `<!-- readme-lint: disable rule-name -->`。全部检查项与背后的词表用 `python scripts/readme_lint.py --list-rules` 打印。
 
 ## 自带样例
 
@@ -86,11 +86,10 @@ result: FAIL
 | `library-before.md` | 0/100，7 个 error |
 | `library-after.md` | 100/100 |
 
-复现：
+复现（一条命令跑完全部样例，并校验规则表没有漏声明）：
 
 ```bash
-python scripts/readme_lint.py examples/cli-before.md --type cli
-python scripts/readme_lint.py examples/cli-after.md --type cli
+python scripts/readme_lint.py --self-test
 ```
 
 ## 目录结构

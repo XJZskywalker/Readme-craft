@@ -1,114 +1,65 @@
 ---
 name: readme-craft
-description: Writes, rewrites, and audits project READMEs so they read like a maintainer's work instead of generated text. Use when creating a README from scratch, cleaning up a bloated or template-heavy README, preparing a repository for open source, or checking that README commands and configuration match the actual code. Covers CLI tools, libraries, web apps, and monorepos.
+description: Writes and rewrites project READMEs so the file reads like a maintainer wrote it. Use when a repository has no README, when an existing one is long or sounds generated, or before publishing to open source. Covers CLI tools, libraries, web apps, monorepos, and single scripts.
 agent_created: true
 ---
 
-# README Craft
+# readme-craft
 
-Produce README files a maintainer would sign their name to: every claim traceable to a file in the repository, every section earning its space, prose written in flat declarative sentences.
+A README's only real asset is that a reader can trust it. Trust comes from detail a reader can check: the install command CI actually runs, the config key that appears in the code, the version floor taken from the manifest. A short file that holds up beats a complete one that does not.
 
-## Modes
+## Three ways in
 
-| Mode | Condition | Output |
-|---|---|---|
-| generate | No README, or a stub under 10 lines | New `README.md` |
-| rewrite | README exists but is bloated, templated, or AI-flavored | Rewritten `README.md` + change notes |
-| audit | User asks for review only, or says "don't change anything" | Findings and score, no file writes |
+| What exists | What you do |
+|---|---|
+| Nothing, or a stub under 10 lines | Write the file |
+| A README that is long, templated, or sounds generated | Rewrite it |
+| A request for review, or "don't change anything" | Report findings, write nothing |
 
-Infer the mode from the request. If the intent is genuinely unclear, ask one question instead of guessing.
+Ask one question when the intent is genuinely unclear. Otherwise read the situation from the repository and start.
 
-## Non-negotiables
-
-1. **No invented facts.** Every command, flag, environment variable, port, and badge must trace to a file in the repository. When a value cannot be determined, leave `<!-- TODO: verify <thing> -->` and list it in the delivery notes. Never fill a gap with a plausible guess.
-2. **No marketing register.** `seamless`, `robust`, `powerful`, `blazing fast`, `cutting-edge`, `effortlessly` are defects, not style choices.
-3. **No decorative emoji** in headings or bullets.
-4. **Trim, do not fill.** A missing section beats an empty one. A 60-line README for a 300-line script is correct.
-5. **Verify before delivering.** Run `scripts/readme_lint.py` until it exits zero.
-
-## Workflow
-
-### Phase 1 — Scope the repository
-
-Identify the project root (the directory holding the manifest). Check:
-
-- what kind of project this is (see `references/structure.md` → archetype table)
-- whether `LICENSE` exists, and which license it actually is
-- whether a README already exists and how long it is
-- whether `docs/`, `CONTRIBUTING.md`, or `CHANGELOG.md` already cover ground the README should link to instead of duplicate
-
-### Phase 2 — Collect facts
-
-Run the scanner, then verify anything that will be quoted:
+## The fact sheet comes first
 
 ```bash
 python scripts/project_scan.py . --out facts.md
 ```
 
-Read `facts.md`. Confirm by opening the source files — install commands, run commands, and environment variables are the three things that most often drift from reality. When the scanner reports `unknown`, resolve it by reading code, or leave a `TODO`.
+The scanner reports `unknown` where it cannot tell, and those are questions for the repository rather than gaps to fill from habit. Verify by hand the three facts that drift fastest: how it installs, how it runs, and which environment variables it reads. `references/fact-sheet.md` says where each of those lives per ecosystem, and what to do when a value cannot be established at all.
 
-Do not write prose until the fact sheet is settled.
+The fact sheet is the evidence. A claim without a line behind it stays out of the file, or goes in as a `TODO` that the delivery note repeats back to the user.
 
-### Phase 3 — Choose archetype and trim
+**Done when** each planned section has a fact behind it. No prose before that point.
 
-Load `references/structure.md`. Pick the archetype, start from its skeleton, then delete every section that does not apply. Sections are removed, never compressed into a one-line stub.
+## Shape follows use
 
-### Phase 4 — Draft
+`references/structure.md` holds five archetypes — CLI, library, web app, monorepo, single script — each with a skeleton and a length budget. Pick the archetype that matches how the project gets consumed, start from its skeleton, then cut.
 
-Write in this order; earlier sections constrain later ones.
+The cut is the work. A section survives because removing it would change what the reader does next; a section compressed into one line is still a section the reader has to skip. Going over the budget means one section is competing with another for space, not that every paragraph needs tightening.
 
-1. Title and one-sentence positioning: what it does, for whom, no adjectives.
-2. Quick start: fewest steps to a working state, ending with one command whose output proves it worked.
-3. Installation, when it differs from quick start (extras, system dependencies, Docker).
-4. Usage and examples: copy-pasteable, each with expected output.
-5. Remaining sections from the skeleton.
+**Done when** every surviving section passes that removal test, and the file sits inside its budget.
 
-### Phase 5 — Lint and self-review
+## Writing the prose
+
+Keep `references/style-rules.md` open while drafting. It carries the voice rules, twenty before/after rewrites, and the three review reads that catch what the linter cannot.
+
+The habit that carries most of the quality: replace the adjective with the number. A parse of 10k rows in 1.8 seconds is a fact the reader can check; "fast" is a claim they have to take on faith.
+
+## The gate
 
 ```bash
 python scripts/readme_lint.py README.md --type <archetype> --repo .
 ```
 
-Fix errors, rerun until clean. Then read once more and cut any sentence that would survive unchanged in a different project's README — that sentence carries no information about this project.
+The linter scores the file 0–100, names the line, and exits non-zero on any error. Fix and rerun until it exits zero; `python scripts/readme_lint.py --list-rules` prints every check and the word lists behind them, which is also where `references/style-rules.md` points instead of restating them.
 
-### Phase 6 — Deliver
+It catches what a model misses in its own output: marketing adjectives, decorative emoji, bullet-only structure, a license claim with no `LICENSE` file behind it. Whether a section earns its space is not machine-checkable, so that judgement stays with you.
 
-Write the file, then report:
+## Handing it back
 
 ```text
-README: <path>  (<mode>, <archetype>, <n> lines, lint <score>/100)
-Removed: <what and why, one bullet per item>
-TODOs: <unverified items, or "none">
+README.md  (rewrite, cli, 64 lines, lint 100/100)
+Removed: table of contents, six-bullet feature list, placeholder screenshot
+Unverified: minimum Node version, whether Windows is supported
 ```
 
-## Writing rules of thumb
-
-| Rule | Detail |
-|---|---|
-| Numbers over adjectives | `parses 10k rows in ~1.8s` beats `blazing fast` |
-| One idea per sentence | Under 25 words; paragraphs under 4 sentences |
-| Lists stay short | At most 5 items, introduced by a sentence; two lists never touch |
-| No TOC under 100 lines | Anchor lists cost more than they save in short files |
-| At most 3 badges | Each one points at state that actually exists |
-| Tag every code fence | `bash`, `ts`, `text` — never a bare fence |
-| Never skip heading levels | H1 → H2 → H3 |
-
-Detailed voice rules, the banned-phrase list, and 20 before/after rewrites live in `references/style-rules.md`. Load it before drafting any prose.
-
-## References
-
-| File | Load when |
-|---|---|
-| `references/structure.md` | Choosing archetype, section set, length budget |
-| `references/style-rules.md` | Writing or reviewing prose |
-| `references/fact-sheet.md` | Extracting commands/config from a specific ecosystem |
-| `examples/` | Needing a concrete before/after reference |
-
-## Scripts
-
-| Script | Purpose |
-|---|---|
-| `scripts/project_scan.py` | Emit a fact sheet: manifests, commands, env vars, entry points, license, tree |
-| `scripts/readme_lint.py` | Deterministic checks for invented facts, AI tells, formatting; scores 0–100 |
-
-Both use the standard library only. Run them from the repository being documented so relative paths resolve.
+Two lines on what you cut, because the cut is where the quality came from.

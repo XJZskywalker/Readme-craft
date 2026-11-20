@@ -59,6 +59,8 @@ The agent runs `project_scan.py`, reads the fact sheet, drafts the README, then 
 | Density | bullet-only documents, six-bullet runs, over-long sentences, length over budget |
 | License | claims a license while no `LICENSE` file exists |
 
+`python scripts/readme_lint.py --list-rules` prints every check with the word lists behind it. To exempt a rule for one file, put `<!-- readme-lint: disable rule-name -->` anywhere in it.
+
 Sample output:
 
 ```text
@@ -84,11 +86,10 @@ result: FAIL
 | `library-before.md` | 0/100, 7 errors |
 | `library-after.md` | 100/100 |
 
-Reproduce with:
+Reproduce all of it, and check the rule table has no undeclared ids, with one command:
 
 ```bash
-python scripts/readme_lint.py examples/cli-before.md --type cli
-python scripts/readme_lint.py examples/cli-after.md --type cli
+python scripts/readme_lint.py --self-test
 ```
 
 ## Layout

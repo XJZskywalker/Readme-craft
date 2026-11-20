@@ -23,41 +23,23 @@ Rules are checkable. A sentence either obeys them or gets rewritten; "sounds fin
 
 ## Banned phrases
 
-Delete on sight. These are the phrases that make text read as generated rather than written.
+The word lists live in the linter, in one place:
 
-**Openers**
+```bash
+python scripts/readme_lint.py --list-rules
+```
 
-- `Welcome to ...`
-- `In today's fast-paced world ...`
-- `Have you ever wanted to ...`
-- `Tired of ...?`
-- `This document will introduce ...`
+Read them as a taxonomy rather than a spell-check, because each group is a different failure. Hype names a quality where a behaviour belongs: "blazing fast" tells the reader nothing they can act on, while "1.8s for 10k rows" tells them whether to keep reading. Filler postpones the sentence ("It is worth noting that X" means "X"). Openers greet instead of stating.
 
-**Hype**
+A phrase on those lists is the linter's problem. The paragraphs below are yours: rhythm, symmetry, and the shape of the document. They share a signature — text written to sound complete rather than to say something.
 
-seamless · seamlessly · robust · powerful · cutting-edge · state-of-the-art · blazing fast · lightning fast · world-class · next-generation · revolutionary · game-changing · effortless · effortlessly · out-of-the-box · enterprise-grade · best-in-class · unlock · empower · supercharge · elevate
+**The parallel-triple.** "Fast, simple, and reliable." Three items, same grammar, no verb carrying an object. Sounds decisive, commits to nothing. Rewrite as one concrete claim, or cut.
 
-Chinese: 强大 · 优雅 · 一站式 · 开箱即用 · 极致 · 赋能 · 深度集成 · 全新升级 · 业界领先 · 完美支持 · 轻松搞定
+**Uniform weight.** Every section the same length, every bullet four to eight words. Real projects are lopsided: the config table has nine rows, the architecture note has two sentences. Even distribution is the tell of a template.
 
-**Filler**
+**Restatement.** A closing paragraph that rewords the opening one, an intro that repeats the title. The reader already read it.
 
-- `It is worth noting that`
-- `Please note that` (when stating a fact, not a warning)
-- `It should be mentioned that`
-- `In order to` (use `To`)
-- `A wide range of`
-- `Various` / `numerous` where a number is known
-- `etc.` at the end of a list that is actually complete
-
-**AI tells**
-
-- Three-item parallel structures used for rhythm: "Fast, simple, and reliable."
-- Every bullet 4–8 words, grammatically parallel, no verbs with objects.
-- Every section roughly the same length.
-- `not only ... but also`
-- Chains of em dashes carrying the real content: "It's fast — really fast — faster than anything else."
-- Bold on every key noun: "**Fast**. **Simple**. **Reliable**."
-- Closing paragraph that restates the intro.
+**Rhythm over meaning.** Em-dash chains that carry the actual content ("It's fast — really fast — faster than anything else"), bold on every key noun, "not only ... but also" holding two clauses that did not need joining.
 
 ## Formatting
 
