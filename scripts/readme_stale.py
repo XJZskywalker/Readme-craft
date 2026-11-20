@@ -59,6 +59,33 @@ def is_contract(path: str) -> bool:
     return Path(path).name in CONTRACT_FILES
 
 
+# Only a changed command or env line in a CI workflow can invalidate a README.
+# Changing the runner, a matrix entry, or a trigger cannot, and warning on
+# those teaches people to ignore the warning.
+COMMAND_LINE = re.compile(r"\s*(?:-\s*)?(run|cmd|command|entrypoint|env)\s*:", re.I)
+
+
+def contract_affects_commands(root: Path, path: str, staged: bool,
+                              rev_range: str | None) -> bool:
+    if not path.startswith(CONTRACT_PREFIXES):
+        return True
+    args = ["diff", "-U0"]
+    if staged:
+        args.append("--cached")
+    if rev_range:
+        args.append(rev_range)
+    args += ["--", path]
+    try:
+        diff = git(root, *args)
+    except RuntimeError:
+        return True  # cannot tell, stay on the noisy side
+    for line in diff.splitlines():
+        if line.startswith(("+", "-")) and not line.startswith(("+++", "---")):
+            if COMMAND_LINE.match(line[1:]):
+                return True
+    return False
+
+
 def read_at(root: Path, name: str, at: str | None) -> str | None:
     """Read from the working tree (None), the index ("index") or a revision.
 
@@ -110,7 +137,8 @@ def undocumented_env(root: Path, at: str | None) -> list[str]:
 def evaluate(root: Path, staged: bool, rev_range: str | None,
              at: str | None = None) -> dict:
     paths = changed_paths(root, staged, rev_range)
-    contract = [p for p in paths if is_contract(p)]
+    contract = [p for p in paths
+                if is_contract(p) and contract_affects_commands(root, p, staged, rev_range)]
     readme_touched = any(Path(p).name in README_NAMES for p in paths)
     env_changed = any(Path(p).name in ENV_FILES for p in contract)
     missing_env = undocumented_env(root, at) if env_changed else []
@@ -232,6 +260,16 @@ def self_test() -> int:
         found = "PORT" not in result["missing_env"]
         failures += 0 if found else 1
         print(f"{'ok  ' if found else 'FAIL'}  exact token is accepted as documentation -> {result['missing_env']}")
+
+        stage(".github/workflows/ci.yml",
+              "name: ci\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: npm test\n")
+        commit("workflow base")
+        stage(".github/workflows/ci.yml",
+              "name: ci\njobs:\n  test:\n    runs-on: ubuntu-22.04\n    steps:\n      - run: npm test\n")
+        case("workflow runner change -> silent", False)
+        stage(".github/workflows/ci.yml",
+              "name: ci\njobs:\n  test:\n    runs-on: ubuntu-22.04\n    steps:\n      - run: npm run test:ci\n")
+        case("workflow command change -> warn", True)
     finally:
         shutil.rmtree(root, ignore_errors=True)
 

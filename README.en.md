@@ -106,7 +106,7 @@ Hooks cannot call a model, so they block and point rather than rewrite.
 
 - `pre-commit` lints the README in the index; `pre-push` lints the README in the commit about to be published. Both read git objects, not the working tree — fixing the file after `git add` cannot fool the gate
 - Any error blocks the commit or push; warnings are printed only
-- Contract files changed — manifest, `.env.example`, `Dockerfile`, `Makefile`, CI workflow — while the README stayed the same produces a warning, not a block. Variables in the env example that no README names are listed individually, matched as whole tokens so `SUPPORT` does not count as documenting `PORT`
+- Contract files changed — manifest, `.env.example`, `Dockerfile`, `Makefile`, or a command/env line in a CI workflow — while the README stayed the same produces a warning, not a block. A runner or matrix edit alone stays quiet. Variables in the env example that no README names are listed individually, matched as whole tokens so `SUPPORT` does not count as documenting `PORT`
 - A first push has no baseline, so the staleness check is skipped; a push carrying several branches checks each one
 
 GitHub Actions also runs both self-tests and lints both READMEs on every push and pull request, on Python 3.9 and 3.12, so a broken rule cannot slip in quietly.

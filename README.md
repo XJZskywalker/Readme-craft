@@ -106,7 +106,7 @@ python scripts/readme_stale.py --self-test
 
 - `pre-commit` 检查 index 里的 README，`pre-push` 检查即将推送的提交里的 README。读的是 git 对象而不是工作树文件——`git add` 之后再把工作区改好，骗不过闸门
 - 有 error 就拦住这次提交或推送，warning 只打印
-- 契约文件（manifest、`.env.example`、Dockerfile、Makefile、CI workflow）变了但 README 没动 → 打印警告，不阻断。`.env.example` 里出现 README 没写的变量 → 逐个列出来，变量名按整词匹配，`PORT` 不会被 `SUPPORT` 糊弄过去
+- 契约文件（manifest、`.env.example`、Dockerfile、Makefile）变了，或 CI workflow 里的命令、环境变量行变了，而 README 没动 → 打印警告，不阻断。只改 runner 或矩阵不会打扰人。`.env.example` 里出现 README 没写的变量 → 逐个列出来，变量名按整词匹配，`PORT` 不会被 `SUPPORT` 糊弄过去
 - 首次推送没有基线，跳过过期检测；一次推多个分支会逐个检查
 
 push 和 PR 还会由 GitHub Actions 跑一遍两个 self-test 与两份 README 的 lint，Python 3.9 和 3.12 各一次，改坏规则不会静默混进去。

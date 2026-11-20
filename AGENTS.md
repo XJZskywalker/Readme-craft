@@ -14,7 +14,7 @@ The gate reads git objects, not the working-tree file. Editing `README.md` witho
 git show :README.md | python scripts/readme_lint.py --stdin --repo .
 ```
 
-`scripts/readme_stale.py` runs alongside it. It warns without blocking when a manifest, `.env.example`, `Dockerfile`, `Makefile`, or CI workflow changed while the README stayed the same, and it names any env-example variable that no README documents. Treat that warning as the real trigger: an untouched README after a contract change is how documentation goes stale. A first push has no diff base, so this check is skipped there.
+`scripts/readme_stale.py` runs alongside it. It warns without blocking when a manifest, `.env.example`, `Dockerfile`, `Makefile`, or a command/env line of a CI workflow changed while the README stayed the same, and it names any env-example variable that no README documents. Workflow edits that change only the runner, matrix, or triggers stay silent. Treat that warning as the real trigger: an untouched README after a contract change is how documentation goes stale. A first push has no diff base, so this check is skipped there.
 
 ## When to apply the skill
 
