@@ -1,20 +1,22 @@
 # readme-craft
 
-A skill that writes, rewrites, and audits project READMEs. Every claim is checked against the repository, and every section has to earn its place.
+[English](README.en.md) | 中文
 
-Most AI-generated READMEs fail the same way: a welcome paragraph, a six-item feature list with no verbs, and install commands copied from a tutorial. This skill replaces that with a fixed procedure. Scan the repo for facts, choose a section set for the project type, draft, then run a linter that fails on marketing language, invented values, and decorative emoji.
+一个用于生成、重写、审查项目 README 的 skill。所有结论都要能在仓库里找到出处，每个章节都要有存在的理由。
 
-## Modes
+多数 AI 生成的 README 有相同的毛病：一句欢迎语、六条没有动词的功能列表、从教程里抄来的安装命令。这个 skill 用固定流程替代它们：取事实、裁章节、起草、跑 linter。
 
-| Mode | When it runs | Output |
+## 三种模式
+
+| 模式 | 触发条件 | 产出 |
 |---|---|---|
-| Generate | No README, or a stub under 10 lines | New `README.md` |
-| Rewrite | README is bloated, templated, or reads as generated | Rewritten file plus change notes |
-| Audit | You want a review without edits | Findings and a score |
+| generate | 没有 README，或只有不到 10 行的占位 | 新 `README.md` |
+| rewrite | README 冗长、模板化、有明显生成痕迹 | 重写后的文件 + 修改说明 |
+| audit | 只要审查意见，不改文件 | 问题清单与评分 |
 
-## Install
+## 安装
 
-Copy the folder into your agent's skills directory:
+把目录复制到 agent 的 skills 目录即可：
 
 ```bash
 git clone https://github.com/XJZskywalker/Readme-craft.git
@@ -22,42 +24,42 @@ mkdir -p ~/.workbuddy/skills
 cp -r Readme-craft ~/.workbuddy/skills/readme-craft
 ```
 
-For Claude Code and other agents that read `SKILL.md` from a skills folder, the same copy works — the directory layout is standard.
+Claude Code 及其他从 skills 目录读取 `SKILL.md` 的 agent 使用方法相同，目录结构是通用的。
 
-Requirements: Python 3.9 or newer for the two scripts. Neither imports anything outside the standard library.
+依赖：Python 3.9 以上，两个脚本都只用标准库。
 
-## Use
+## 使用
 
-Ask in the language you would normally use:
+直接说需求即可：
 
 ```text
-Write a README for this project.
+给这个项目写一个 README
 ```
 
 ```text
-This README reads like it was generated. Cut it down and make it accurate.
+这个 README 太像 AI 写的了，删掉废话，把不准确的地方改对
 ```
 
 ```text
-Check the README against the code. Don't change anything, just report.
+对照代码检查这份 README，不要改文件，只给报告
 ```
 
-The agent runs `project_scan.py`, reads the fact sheet, drafts the README, then runs `readme_lint.py` until it exits clean. Delivery notes list what was removed and which values could not be verified.
+agent 会先跑 `project_scan.py` 拿到事实清单，读完再起草，然后反复跑 `readme_lint.py` 直到退出码为 0。交付时会列出删掉了什么，以及哪些值没能核实。
 
-## What the linter checks
+## linter 检查什么
 
-`readme_lint.py` is deterministic. It reads the file, scores it 0–100, and exits non-zero on any error.
+`readme_lint.py` 是确定性检查：读文件、算分 0–100、有 error 就退出非零。
 
-| Group | Examples |
+| 类别 | 例子 |
 |---|---|
-| Invented content | `TODO`, `TBD`, placeholder images, `example.com/your-*` links |
-| Marketing register | `seamless`, `robust`, `blazing`, `cutting-edge`, `强大`, `一站式`, `开箱即用` |
-| Structure | missing title, multiple H1, empty section, no quick start or usage |
-| Formatting | untagged code fence, emoji headings, more than 3 badges |
-| Density | bullet-only documents, six-bullet runs, over-long sentences, length over budget |
-| License | claims a license while no `LICENSE` file exists |
+| 编造内容 | `TODO`、`TBD`、占位图、`example.com/your-*` 链接 |
+| 营销腔 | `seamless`、`robust`、`blazing`、`cutting-edge`、`强大`、`一站式`、`开箱即用` |
+| 结构 | 缺标题、多个 H1、空章节、没有快速开始或用法 |
+| 格式 | 代码块没有语言标记、标题带 emoji、badge 超过 3 个 |
+| 信息密度 | 通篇 bullet、连续 6 条以上列表、句子过长、超出长度预算 |
+| 许可证 | 声称有协议但仓库里没有 `LICENSE` |
 
-Sample output:
+输出示例：
 
 ```text
 README lint: README.md
@@ -71,50 +73,50 @@ score: 64/100  (2 errors, 1 warning)
 result: FAIL
 ```
 
-## Bundled examples
+如需豁免某条规则，在文件任意位置写 `<!-- readme-lint: disable rule-name -->`。
 
-`examples/` holds two before/after pairs. The "before" files are typical generated READMEs; the "after" files were written with this skill.
+## 自带样例
 
-| File | Score |
+`examples/` 里有两组 before/after。before 是典型的生成式 README，after 是用本 skill 写的版本。
+
+| 文件 | 得分 |
 |---|---|
-| `cli-before.md` | 0/100, 23 errors |
+| `cli-before.md` | 0/100，23 个 error |
 | `cli-after.md` | 100/100 |
-| `library-before.md` | 0/100, 7 errors |
+| `library-before.md` | 0/100，7 个 error |
 | `library-after.md` | 100/100 |
 
-Reproduce with:
+复现：
 
 ```bash
 python scripts/readme_lint.py examples/cli-before.md --type cli
 python scripts/readme_lint.py examples/cli-after.md --type cli
 ```
 
-## Layout
+## 目录结构
 
 ```text
-SKILL.md                  procedure the agent follows
+SKILL.md                  agent 执行的主流程
 references/
-  structure.md            archetypes, section matrix, length budgets
-  style-rules.md          voice rules, banned phrases, 20 rewrites
-  fact-sheet.md           where commands, config, and license live per ecosystem
+  structure.md            项目类型、章节矩阵、长度预算
+  style-rules.md          语感规则、禁用词、20 组改写对照
+  fact-sheet.md           各生态里命令、配置、许可证的出处
 scripts/
-  project_scan.py         repo to fact sheet
-  readme_lint.py          fact sheet and prose to score
-examples/
-  cli-before.md    cli-after.md
-  library-before.md  library-after.md
+  project_scan.py         仓库 → 事实清单
+  readme_lint.py          文件 → 问题清单与评分
+examples/                 before/after 样例
 ```
 
-## Design notes
+## 设计取舍
 
-**Facts before prose.** The agent is not allowed to draft until the fact sheet is settled. Commands come from CI, then Makefile, then manifest scripts — never from memory. Anything unresolved becomes a `TODO` in the output, listed in the delivery notes.
+**先事实后文字。** 事实清单没定下来之前不许起草。命令的取值顺序是 CI → Makefile → manifest scripts，不靠记忆。核不实的项写成 `TODO`，并在交付说明里列出。
 
-**Trimming over filling.** `references/structure.md` defines five archetypes and a matrix of which sections apply. Optional sections are removed, not shortened into one-line stubs.
+**裁剪优先于填充。** `references/structure.md` 定义了五种项目类型和章节矩阵。可选章节是删掉，而不是压缩成一句话。
 
-**Deterministic checks.** The linter catches what a model tends to miss in its own output: marketing adjectives, decorative emoji, bullet-only structure, claims that the repository cannot support. Style judgement stays with the prompt; measurable defects go to code.
+**确定性的检查交给代码。** linter 负责模型自己容易漏掉的东西：营销形容词、装饰 emoji、通篇 bullet、仓库支撑不了的声明。语感判断留在提示词里，可量化的缺陷交给脚本。
 
-**Chinese and English.** Rules cover both. The linter flags missing spacing between Chinese and Latin text, and the banned-phrase list includes the Chinese marketing vocabulary that generated READMEs tend to use.
+**中英文都管。** 规则覆盖两种语言：linter 会报中英文之间缺空格，禁用词表里包含中文 README 常见的营销词。
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT，见 [LICENSE](LICENSE)。
